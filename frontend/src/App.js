@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
 import { analyzeResume, API_BASE } from './config';
 import { useTheme } from './context/ThemeContext';
+import { useHistory } from './context/HistoryContext';
 
 // Pages
 import Home from './pages/Home';
 import Analyze from './pages/Analyze';
 import Results from './pages/Results';
+import History from './pages/History';
 
 function buildATSFriendlyText({ fileName, resumeText, analysis }) {
   const lines = [];
@@ -39,6 +41,7 @@ function buildATSFriendlyText({ fileName, resumeText, analysis }) {
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
+  const { saveAnalysis } = useHistory();
   const [page, setPage] = useState('home');
   const [analysis, setAnalysis] = useState(null);
   const [editedResumeText, setEditedResumeText] = useState('');
@@ -58,6 +61,15 @@ export default function App() {
         setFileName(result.fileName || file.name);
         setResumeFile(file);
         setStoredJobDescription(jobDescription);
+        const entry = {
+          id: Date.now().toString(),
+          timestamp: new Date().toISOString(),
+          fileName: result.fileName || file.name,
+          score: result.score,
+          verdict: result.verdict,
+          sections: result.sections,
+        };
+        saveAnalysis(entry);
         setAnalysis({
           score: result.score,
           verdict: result.verdict,
@@ -73,7 +85,7 @@ export default function App() {
         setAnalyzing(false);
       }
     },
-    []
+    [saveAnalysis]
   );
 
   const handleExport = useCallback(() => {
@@ -89,6 +101,24 @@ export default function App() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [analysis, fileName, editedResumeText]);
+
+  const handleRestore = useCallback((entry) => {
+    if (entry === 'analyze') {
+      setPage('analyze');
+      return;
+    }
+    setFileName(entry.fileName);
+    setAnalysis({
+      score: entry.score,
+      verdict: entry.verdict,
+      matchedKeywords: entry.matchedKeywords || [],
+      missingKeywords: entry.missingKeywords || [],
+      sections: entry.sections || [],
+      suggestions: entry.suggestions || [],
+    });
+    setEditedResumeText('');
+    setPage('results');
+  }, []);
 
   const handleExportPdf = useCallback(async () => {
     if (!analysis || !resumeFile) return;
@@ -146,6 +176,14 @@ export default function App() {
                 Analyze Resume
               </button>
               <button
+                onClick={() => { setPage('history'); setAnalysis(null); setError(null); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  page === 'history' ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                History
+              </button>
+              <button
                 onClick={toggleTheme}
                 className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                 aria-label="Toggle dark mode"
@@ -183,6 +221,9 @@ export default function App() {
             onExport={handleExport}
             onExportPdf={handleExportPdf}
           />
+        )}
+        {page === 'history' && (
+          <History onRestore={handleRestore} />
         )}
       </main>
 
