@@ -1,0 +1,39 @@
+# --- Root (full-stack repo) ---
+
+# Node / frontend
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Python / backend
+backend/.venv/
+backend/venv/
+env/
+.venv/
+__pycache__/
+*.py[c]
+*.pyo
+*.pyd
+*.pyc
+.Python
+.env
+.backend_env
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+coverage/
+dist/
