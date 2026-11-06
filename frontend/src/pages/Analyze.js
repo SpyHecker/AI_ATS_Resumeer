@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function Analyze({ onAnalyze, analyzing }) {
+export default function Analyze({ onAnalyze, analyzing, error }) {
   const [file, setFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
 
@@ -75,7 +75,13 @@ export default function Analyze({ onAnalyze, analyzing }) {
           </div>
         </form>
 
-        {!ready && !analyzing && (
+        {error && (
+          <div className="mt-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+            {error}
+          </div>
+        )}
+
+        {!ready && !analyzing && !error && (
           <p className="mt-4 text-sm text-slate-500">Please upload a resume and paste a job description to continue.</p>
         )}
       </div>

@@ -1,19 +1,10 @@
 import { useState, useCallback } from 'react';
-import { analyzeResume } from './lib/mockAnalysis';
+import { analyzeResume } from './config';
 
 // Pages
 import Home from './pages/Home';
 import Analyze from './pages/Analyze';
 import Results from './pages/Results';
-
-function readFileText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result ?? '');
-    reader.onerror = () => reject(reader.error);
-    reader.readAsText(file);
-  });
-}
 
 function buildATSFriendlyText({ fileName, resumeText, analysis }) {
   const lines = [];
@@ -39,7 +30,9 @@ function buildATSFriendlyText({ fileName, resumeText, analysis }) {
   lines.push('Suggestions:');
   (analysis.suggestions ?? []).forEach((s, i) => lines.push(`  ${i + 1}. ${s}`));
   lines.push('');
-  lines.push('Tip: Use standard section headings (Experience, Education, Skills) and a clean, single-column layout.');
+  lines.push(
+    'Tip: Use standard section headings (Experience, Education, Skills) and a clean, single-column layout.'
+  );
   return lines.join('\n');
 }
 
@@ -49,21 +42,27 @@ export default function App() {
   const [resumeText, setResumeText] = useState('');
   const [fileName, setFileName] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleAnalyze = useCallback(
     async ({ file, jobDescription }) => {
       setAnalyzing(true);
+      setError(null);
       try {
-        const text = await readFileText(file);
-        const analysisResult = analyzeResume(text, jobDescription);
-        setResumeText(text);
-        setFileName(file.name);
+        const result = await analyzeResume(file, jobDescription);
+        setResumeText(result.resumeText || '');
+        setFileName(result.fileName || file.name);
         setAnalysis({
-          ...analysisResult,
-          fileName: file.name,
-          jobDescription,
+          score: result.score,
+          verdict: result.verdict,
+          matchedKeywords: result.matchedKeywords,
+          missingKeywords: result.missingKeywords,
+          sections: result.sections,
+          suggestions: result.suggestions,
         });
         setPage('results');
+      } catch (err) {
+        setError(err.message || 'Analysis failed. Is the backend running on http://localhost:8000?');
       } finally {
         setAnalyzing(false);
       }
@@ -98,13 +97,13 @@ export default function App() {
             </div>
             <div className="flex items-center gap-4">
               <button
-                onClick={() => { setPage('home'); setAnalysis(null); }}
+                onClick={() => { setPage('home'); setAnalysis(null); setError(null); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${page === 'home' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
                 Home
               </button>
               <button
-                onClick={() => { setPage('analyze'); setAnalysis(null); }}
+                onClick={() => { setPage('analyze'); setAnalysis(null); setError(null); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${page === 'analyze' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
                 Analyze Resume
@@ -120,12 +119,13 @@ export default function App() {
           <Analyze
             onAnalyze={handleAnalyze}
             analyzing={analyzing}
+            error={error}
           />
         )}
         {page === 'results' && analysis && (
           <Results
             analysis={analysis}
-            onRetry={() => { setPage('analyze'); setAnalysis(null); }}
+            onRetry={() => { setPage('analyze'); setAnalysis(null); setError(null); }}
             onExport={handleExport}
           />
         )}
