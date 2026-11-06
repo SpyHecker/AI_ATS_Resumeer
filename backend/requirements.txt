@@ -1,0 +1,13 @@
+# Python backend for AI ATS Resumeer
+fastapi==0.115.0
+uvicorn[standard]==0.32.1
+python-multipart==0.0.9
+
+# Resume parsing
+PyPDF2==3.0.1
+pdfminer.six==20240706
+python-docx==1.1.0
+
+# NLP / analysis
+nltk==3.9.1
+scikit-learn==1.5.2

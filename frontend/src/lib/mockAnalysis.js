@@ -6,7 +6,7 @@ const STOP_WORDS = new Set([
 
 export function extractWords(text) {
   return text.toLowerCase()
-    .replace(/[^a-z0-9\s#+.-]/g, ' ')
+    .replace(/[^a-z0-9\s#+-]/g, ' ')
     .split(/\s+/)
     .filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
 }
