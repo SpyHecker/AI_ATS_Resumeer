@@ -1,13 +1,89 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { analyzeResume } from './lib/mockAnalysis';
 
 // Pages
 import Home from './pages/Home';
 import Analyze from './pages/Analyze';
 import Results from './pages/Results';
 
-function App() {
+function readFileText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result ?? '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
+function buildATSFriendlyText({ fileName, resumeText, analysis }) {
+  const lines = [];
+  lines.push('ATS-FRIENDLY RESUME');
+  lines.push('Source file: ' + (fileName || 'uploaded resume'));
+  lines.push('');
+  lines.push('--- RESUME CONTENT (extracted) ---');
+  lines.push(resumeText || '');
+  lines.push('');
+  lines.push('--- ATS ANALYSIS ---');
+  lines.push('ATS Compatibility Score: ' + (analysis.score ?? 0) + '%');
+  lines.push('Verdict: ' + (analysis.verdict ?? ''));
+  lines.push('');
+  lines.push('Sections detected: ' + (analysis.sections?.join(', ') || 'none'));
+  lines.push('');
+  if (analysis.matchedKeywords?.length) {
+    lines.push('Matched keywords: ' + analysis.matchedKeywords.join(', '));
+  }
+  if (analysis.missingKeywords?.length) {
+    lines.push('Missing keywords to add: ' + analysis.missingKeywords.join(', '));
+  }
+  lines.push('');
+  lines.push('Suggestions:');
+  (analysis.suggestions ?? []).forEach((s, i) => lines.push(`  ${i + 1}. ${s}`));
+  lines.push('');
+  lines.push('Tip: Use standard section headings (Experience, Education, Skills) and a clean, single-column layout.');
+  return lines.join('\n');
+}
+
+export default function App() {
   const [page, setPage] = useState('home');
   const [analysis, setAnalysis] = useState(null);
+  const [resumeText, setResumeText] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const handleAnalyze = useCallback(
+    async ({ file, jobDescription }) => {
+      setAnalyzing(true);
+      try {
+        const text = await readFileText(file);
+        const analysisResult = analyzeResume(text, jobDescription);
+        setResumeText(text);
+        setFileName(file.name);
+        setAnalysis({
+          ...analysisResult,
+          fileName: file.name,
+          jobDescription,
+        });
+        setPage('results');
+      } finally {
+        setAnalyzing(false);
+      }
+    },
+    []
+  );
+
+  const handleExport = useCallback(() => {
+    if (!analysis) return;
+    const content = buildATSFriendlyText({ fileName, resumeText, analysis });
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ats-friendly-resume.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [analysis, fileName, resumeText]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
@@ -40,8 +116,19 @@ function App() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {page === 'home' && <Home onStart={() => setPage('analyze')} />}
-        {page === 'analyze' && <Analyze onAnalyze={setAnalysis} />}
-        {page === 'results' && analysis && <Results analysis={analysis} onRetry={() => setPage('analyze')} />}
+        {page === 'analyze' && (
+          <Analyze
+            onAnalyze={handleAnalyze}
+            analyzing={analyzing}
+          />
+        )}
+        {page === 'results' && analysis && (
+          <Results
+            analysis={analysis}
+            onRetry={() => { setPage('analyze'); setAnalysis(null); }}
+            onExport={handleExport}
+          />
+        )}
       </main>
 
       <footer className="border-t border-slate-200 bg-slate-50 py-6 mt-auto">
@@ -56,5 +143,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

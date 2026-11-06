@@ -1,11 +1,19 @@
-export default function Results({ analysis, onRetry }) {
+export default function Results({ analysis, onRetry, onExport }) {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-900">Analysis results</h2>
-        <button onClick={onRetry} className="text-sm text-brand-600 hover:underline font-medium">
-          Analyze another
-        </button>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Analysis results</h2>
+          <p className="text-sm text-slate-500">Review your ATS compatibility and suggested improvements.</p>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onExport} className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-medium text-sm transition shadow shadow-brand-500/30 flex items-center gap-2">
+            <span>⬇</span> Export ATS-friendly TXT
+          </button>
+          <button onClick={onRetry} className="px-5 py-2.5 border border-slate-300 rounded-lg font-medium text-sm text-slate-700 hover:bg-slate-100 transition">
+            Analyze another
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -32,6 +40,9 @@ export default function Results({ analysis, onRetry }) {
                   <span className="text-slate-600">{s}</span>
                 </li>
               ))}
+              {(analysis.sections ?? []).length === 0 && (
+                <p className="text-sm text-slate-400">No standard sections detected.</p>
+              )}
             </ul>
           </div>
         </div>
@@ -45,6 +56,9 @@ export default function Results({ analysis, onRetry }) {
                   {k}
                 </span>
               ))}
+              {(analysis.missingKeywords ?? []).length === 0 && (
+                <p className="text-sm text-brand-600">No major missing keywords.</p>
+              )}
             </div>
           </div>
         </div>
@@ -62,6 +76,21 @@ export default function Results({ analysis, onRetry }) {
             </ul>
           </div>
         </div>
+
+        {(analysis.matchedKeywords ?? []).length > 0 && (
+          <div className="col-span-1 md:col-span-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="font-bold text-slate-900 mb-4 text-sm uppercase tracking-wider text-slate-500">Matched keywords</h3>
+              <div className="flex flex-wrap gap-2">
+                {(analysis.matchedKeywords ?? []).slice(0, 15).map((k) => (
+                  <span key={k} className="px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700 text-xs font-medium">
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
