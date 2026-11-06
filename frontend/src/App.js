@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { analyzeResume } from './config';
+import { analyzeResume, API_BASE } from './config';
 import { useTheme } from './context/ThemeContext';
 
 // Pages
@@ -41,8 +41,10 @@ export default function App() {
   const { theme, toggleTheme } = useTheme();
   const [page, setPage] = useState('home');
   const [analysis, setAnalysis] = useState(null);
-  const [resumeText, setResumeText] = useState('');
+  const [editedResumeText, setEditedResumeText] = useState('');
   const [fileName, setFileName] = useState('');
+  const [resumeFile, setResumeFile] = useState(null);
+  const [storedJobDescription, setStoredJobDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
 
@@ -52,8 +54,10 @@ export default function App() {
       setError(null);
       try {
         const result = await analyzeResume(file, jobDescription);
-        setResumeText(result.resumeText || '');
+        setEditedResumeText(result.resumeText || '');
         setFileName(result.fileName || file.name);
+        setResumeFile(file);
+        setStoredJobDescription(jobDescription);
         setAnalysis({
           score: result.score,
           verdict: result.verdict,
@@ -74,7 +78,7 @@ export default function App() {
 
   const handleExport = useCallback(() => {
     if (!analysis) return;
-    const content = buildATSFriendlyText({ fileName, resumeText, analysis });
+    const content = buildATSFriendlyText({ fileName, resumeText: editedResumeText, analysis });
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -84,7 +88,32 @@ export default function App() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [analysis, fileName, resumeText]);
+  }, [analysis, fileName, editedResumeText]);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!analysis || !resumeFile) return;
+    const formData = new FormData();
+    formData.append("file", resumeFile);
+    formData.append("job_description", storedJobDescription);
+    try {
+      const response = await fetch(`${API_BASE}/api/export-pdf`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) throw new Error("PDF export failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ats-friendly-resume.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message || "PDF export failed. Is the backend running?");
+    }
+  }, [analysis, resumeFile, storedJobDescription]);
 
   return (
     <div className={`min-h-screen text-slate-900 antialiased transition-colors duration-300 ${
@@ -148,8 +177,11 @@ export default function App() {
         {page === 'results' && analysis && (
           <Results
             analysis={analysis}
+            resumeText={editedResumeText}
+            onResumeTextChange={setEditedResumeText}
             onRetry={() => { setPage('analyze'); setAnalysis(null); setError(null); }}
             onExport={handleExport}
+            onExportPdf={handleExportPdf}
           />
         )}
       </main>

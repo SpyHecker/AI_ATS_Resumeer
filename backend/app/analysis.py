@@ -139,13 +139,18 @@ def section_scores(resume_text: str, job_description: str) -> List[dict]:
 
 
 def _extract_section(text: str, patterns: List[str]) -> str:
-    """Crude section extraction: grab text following a section heading."""
+    """Crude section extraction: grab text from a section heading to the next heading."""
     lines = text.splitlines()
     out = []
     capture = False
     for line in lines:
-        if any(re.search(p, line, re.IGNORECASE) for p in patterns):
+        is_heading = any(re.search(p, line, re.IGNORECASE) for p in patterns)
+        if is_heading:
             capture = True
+            # Keep any content after the heading on the same line.
+            after = re.split(r"\s*:\s*", line, maxsplit=1)
+            if len(after) > 1 and after[1].strip():
+                out.append(after[1])
             continue
         if capture:
             # Stop at next known heading.

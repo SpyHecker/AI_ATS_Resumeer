@@ -1,4 +1,4 @@
-export default function Results({ analysis, onRetry, onExport }) {
+export default function Results({ analysis, resumeText, onResumeTextChange, onRetry, onExport, onExportPdf }) {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -8,8 +8,13 @@ export default function Results({ analysis, onRetry, onExport }) {
         </div>
         <div className="flex gap-3">
           <button onClick={onExport} className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-medium text-sm transition shadow shadow-brand-500/30 dark:shadow-brand-900/20 flex items-center gap-2">
-            <span>⬇</span> Export ATS-friendly TXT
+            <span>⬇</span> Export TXT
           </button>
+          {onExportPdf && (
+            <button onClick={onExportPdf} className="px-5 py-2.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg font-medium text-sm transition flex items-center gap-2">
+              <span>📄</span> Export PDF
+            </button>
+          )}
           <button onClick={onRetry} className="px-5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-lg font-medium text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
             Analyze another
           </button>
@@ -163,6 +168,21 @@ export default function Results({ analysis, onRetry, onExport }) {
             </ul>
           </div>
         </div>
+      </div>
+
+      {/* Editable resume text */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm dark:shadow-brand-900/20">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-0 text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">Edit extracted resume text</h3>
+          <span className="text-xs text-slate-400 dark:text-slate-500">Changes apply to the exported file</span>
+        </div>
+        <textarea
+          value={resumeText ?? ''}
+          onChange={(e) => onResumeTextChange(e.target.value)}
+          rows="12"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 p-4 text-sm text-slate-700 dark:text-slate-300 font-mono focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition resize-none"
+          placeholder="Extracted resume text will appear here..."
+        ></textarea>
       </div>
 
       {/* Matched keywords */}
